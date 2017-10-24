@@ -20,6 +20,9 @@
     "android",
     "ios"
   ],
+  "scripts": {
+    "prepublish": "git push"
+  },
   "peerDependencies": {
     "react": ">=16.0.0",
     "react-native": ">=0.36"
