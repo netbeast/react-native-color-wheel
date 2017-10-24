@@ -1,64 +1,60 @@
 import React, { Component } from 'react'
 import {
+  Animated,
   Image,
   Dimensions,
   PanResponder,
   StyleSheet,
   View,
- } from 'react-native'
+  Text,
+} from 'react-native'
+import colorsys from 'colorsys'
 
-const GREY_LIGHT = '#eeeeee'
-
-export class Dial extends Component {
+export class ColorWheel extends Component {
   static defaultProps = {
-    initialRadius: 1,
-    initialAngle: 0,
+    initialColor: '#ffffff',
     precision: 0,
   }
 
-  constructor (props) {
+  constructor(props) {
     super(props)
     this.state = {
-      startingAngle: this.props.initialAngle,
-      startingRadius: this.props.initialRadius,
-      releaseAngle: this.props.initialAngle,
-      releaseRadius: this.props.initialRadius,
-      angle: this.props.initialAngle,
-      radius: this.props.initialRadius,
+      offset: { x: 0, y: 0 },
+      currentColor: props.initialColor,
+      pan: new Animated.ValueXY(),
     }
-    this.offset = {x: 0, y: 0}
   }
 
-  componentWillMount () {
+  componentWillMount = () => {
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponder: (e, gestureState) => true,
       onStartShouldSetPanResponderCapture: (e, gestureState) => {
-        this.measureOffset() // measure again
-        const { deg, radius } = this.calcAngle(e.nativeEvent)
-        this.setState({startingAngle: deg, startingRadius: radius})
+        this.state.pan.setOffset({
+          x: this.state.pan.x._value,
+          y: this.state.pan.y._value,
+        })
+        this.state.pan.setValue({x: 0, y: 0})
         return true
       },
       onMoveShouldSetPanResponder: (e, g) => true,
       onMoveShouldSetPanResponderCapture: (e, gestureState) => true,
       onPanResponderGrant: (e, gestureState) => true,
-      onPanResponderMove: (e, gestureState) => requestAnimationFrame(() => {
-        this.updateAngle(gestureState)
-      }),
+      onPanResponderMove: Animated.event([null, {
+        dx: this.state.pan.x,
+        dy: this.state.pan.y,
+      }], { listener: this.updateColor }),
       onPanResponderRelease: (e, gestureState) => {
-        this.setState({
-          releaseAngle: this.state.angle,
-          releaseRadius: this.state.radius,
-        })
+        this.state.pan.flattenOffset()
       },
     })
   }
 
   onLayout (nativeEvent) {
+    this.measureOffset()
     /*
     * Multiple measures to avoid the gap between animated
     * and not animated views
     */
-    this.measureOffset()
     setTimeout(() => this.measureOffset(), 200)
   }
 
@@ -69,55 +65,74 @@ export class Dial extends Component {
     * x and y are the distances to its previous element
     * but in measureInWindow they are relative to the window
     */
-    const { width: screenWidth } = Dimensions.get('window')
-
     this.self.measureInWindow((x, y, width, height) => {
-      this.offset = {
-        x: x % screenWidth + width / 2,
-        y: y + height / 2,
+      const window = Dimensions.get('window')
+      const radius = Math.min(width, height) / 2
+      const offset = {
+        x: x % window.width + width / 2,
+        y: y % window.height + height / 2,
       }
-      this.radius = width / 2
+
+      this.setState({ offset, radius, height, width })
+      this.forceUpdate(this.state.currentColor)
     })
   }
 
-  updateAngle (gestureState) {
-    let {deg, radius} = this.calcAngle(gestureState)
-    if (deg < 0) deg += 360
-    if (Math.abs(this.state.angle - deg) > this.props.precision) {
-      this.updateState({deg, radius})
-    }
-  }
-
-  calcAngle (gestureState) {
+  calcPolar (gestureState) {
     const {pageX, pageY, moveX, moveY} = gestureState
     const [x, y] = [pageX || moveX, pageY || moveY]
-    const [dx, dy] = [x - this.offset.x, y - this.offset.y]
+    const [dx, dy] = [x - this.state.offset.x, y - this.state.offset.y]
     return {
-      deg: Math.atan2(dy, dx) * 180 / Math.PI + 120,
-      radius: Math.sqrt(dy * dy + dx * dx) / this.radius, // pitagoras r^2 = x^2 + y^2 normalizado
+      deg: Math.atan2(dy, dx) * - 180 / Math.PI,
+      // pitagoras r^2 = x^2 + y^2 normalized
+      radius: Math.sqrt(dy * dy + dx * dx) / this.state.radius,
     }
   }
 
-  updateState ({deg, radius = this.state.radius}) {
-    radius = this.state.releaseRadius + radius - this.state.startingRadius
-    if (radius < this.props.radiusMin) radius = this.props.radiusMin
-    else if (radius > this.props.radiusMax) radius = this.props.radiusMax
+  calcCartesian (deg, radius) {
+    const r = radius * this.state.radius // was normalized
+    const rad = Math.PI * deg / 180
+    const x = r * Math.cos(rad)
+    const y = r * Math.sin(rad)
+    return {
+      left: this.state.width / 2 + x,
+      top: this.state.height / 2 - y,
+    }
+  }
 
-    deg = deg + this.state.releaseAngle - this.state.startingAngle
-    if (deg < 0) deg += 360
+  updateColor = ({nativeEvent}) => {
+    const what = this.state.pan
+    const { deg, radius } = this.calcPolar(nativeEvent)
+    const currentColor = colorsys.hsv2Hex({ h: deg, s: 100 * radius, v: 100 })
+    this.setState({ currentColor })
+    if (this.props.onValueChange) this.props.onColorChange(currentColor)
+  }
 
-    this.setState({angle: deg, radius})
-    if (this.props.onValueChange) this.props.onValueChange(deg, radius)
+  forceUpdate = (color) => {
+    const { h, s } = colorsys.hex2Hsv(color)
+    const { left, top } = this.calcCartesian(h, s / 100)
+    this.setState({currentColor: color})
+    Animated.spring(this.state.pan, {
+      toValue: {x: left - 25, y: top - 25}
+    }).start()
   }
 
   render () {
+    const { radius } = this.state
     return (
       <View
-        onLayout={(nativeEvent) => this.onLayout(nativeEvent)}
         ref={(node) => { this.self = node }}
-        style={[styles.coverResponder, this.props.responderStyle]}
-        {...this._panResponder.panHandlers}>
-        <Image source={require('./color-wheel.png')} />
+        {...this._panResponder.panHandlers}
+        onLayout={(nativeEvent) => this.onLayout(nativeEvent)}
+        style={[styles.coverResponder, this.props.style]}>
+        <Image
+          style={[styles.img, {height: radius * 2, width: radius * 2}]}
+          source={require('./color-wheel.png')}/>
+        <Animated.View
+          {...this._panResponder.panHandlers}
+          style={[this.state.pan.getLayout(), styles.circle, {
+            backgroundColor: this.state.currentColor,
+          }, this.props.thumbStyle]} />
       </View>
     )
   }
@@ -125,35 +140,29 @@ export class Dial extends Component {
 
 const styles = StyleSheet.create({
   coverResponder: {
-    padding: 20, // needs a minimum
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dial: {
-    width: 120,
-    height: 120,
-    backgroundColor: 'white',
-    borderRadius: 60,
-    elevation: 5,
-    shadowColor: GREY_LIGHT,
-    shadowOffset: {width: 1, height: 2},
-    shadowOpacity: 0.8,
-    shadowRadius: 1,
+  img: {
+    alignSelf: 'center',
   },
-  innerDialDecorator: {
-    top: 10,
-    left: 10,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'white',
-    elevation: 3,
-  },
-  pointer: {
-    top: 20,
-    left: 20,
+  circle: {
     position: 'absolute',
-    width: 10,
-    height: 10,
-    backgroundColor: 'rgb(221,223,226)',
-    borderRadius: 5,
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    backgroundColor: '#EEEEEE',
+    borderWidth: 3,
+    borderColor: '#EEEEEE',
+    elevation: 3,
+    shadowColor: 'rgb(46, 48, 58)',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
   },
 })
+
+function _normalizeAngle (degrees) {
+  return (degrees % 360 + 360) % 360;
+}
