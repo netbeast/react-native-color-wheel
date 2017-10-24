@@ -1,12 +1,6 @@
 # react-native-color-wheel
 ![npm version](https://badge.fury.io/js/react-native-dial.svg)
 
-<a href="https://getyeti.co" target="_blank">
-   <img alt="works with yeti" src="works-with-yeti.png" width="100" />
-</a>
-
-> This package powers [Yeti Smart Home](https://getyeti.co) and is used in production.
-
 :art: A react native reusable and color picker wheel
 
 ```javascript
@@ -41,4 +35,9 @@ export default class Example extends Component {
 More documentation is incoming, in the meanwhile please read the source code. It is a single file!
 PRs and issues are more than welcome.
 
+<a href="https://getyeti.co" target="_blank">
+   <img alt="works with yeti" src="works-with-yeti.png" width="100" />
+</a>
+
+> This package powers [Yeti Smart Home](https://getyeti.co) and is used in production.
 Follow us in Github or https://twitter.com/netbeast_co.
