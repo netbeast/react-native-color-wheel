@@ -1,5 +1,5 @@
 # react-native-color-wheel
-![npm version](https://badge.fury.io/js/react-native-dial.svg)
+![npm version](https://badge.fury.io/js/react-native-color-wheel.svg)
 
 :art: A react native reusable and color picker wheel
 
