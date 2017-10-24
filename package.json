@@ -1,0 +1,39 @@
+{
+  "name": "react-native-color-wheel",
+  "version": "0.1.0",
+  "description": "A react native reusable and color picker wheel",
+  "main": "./ColorWheel.js",
+  "license": "MIT",
+  "repository": {
+    "type": "https",
+    "url": "https://github.com/netbeast/react-native-dial"
+  },
+  "keywords": [
+    "color",
+    "picker",
+    "color picker",
+    "wheel",
+    "color wheel",
+    "react",
+    "native",
+    "react-native",
+    "android",
+    "ios"
+  ],
+  "peerDependencies": {
+    "react": ">=16.0.0",
+    "react-native": ">=0.36"
+  },
+  "devDependencies": {
+    "babel-eslint": "^7.1.0",
+    "babel-plugin-transform-inline-environment-variables": "^6.8.0",
+    "babel-plugin-transform-remove-console": "^6.8.0",
+    "babel-preset-react-native": "^1.9.0",
+    "babel-preset-react-native-stage-0": "^1.0.1",
+    "eslint": "^3.9.1",
+    "eslint-plugin-react": "^6.6.0"
+  },
+  "dependencies": {
+    "colorsys": "^1.0.17"
+  }
+}
