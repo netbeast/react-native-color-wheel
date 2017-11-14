@@ -134,7 +134,7 @@ export class ColorWheel extends Component {
         style={[styles.coverResponder, this.props.style]}>
         <Image
           style={[styles.img, {height: radius * 2, width: radius * 2}]}
-          source={require('yeti/app/assets/img/color-wheel.png')} />
+          source={require('./color-wheel.png')} />
         <Animated.View
           {...this._panResponder.panHandlers}
           style={[this.state.pan.getLayout(), styles.circle, {
