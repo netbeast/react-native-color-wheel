@@ -1,4 +1,6 @@
-import React, { Component } from 'react'
+// @flow
+
+import React, {Component} from 'react'
 import {
   Animated,
   Image,
@@ -11,15 +13,16 @@ import colorsys from 'colorsys'
 
 export class ColorWheel extends Component {
   static defaultProps = {
+    thumbSize: 50,
     initialColor: '#ffffff',
     onColorChange: () => {},
     precision: 0,
   }
 
-  constructor(props) {
+  constructor (props) {
     super(props)
     this.state = {
-      offset: { x: 0, y: 0 },
+      offset: {x: 0, y: 0},
       currentColor: props.initialColor,
       pan: new Animated.ValueXY(),
     }
@@ -27,38 +30,50 @@ export class ColorWheel extends Component {
 
   componentWillMount = () => {
     this._panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => {
-        this.state.pan.setOffset({
-          x: this.state.pan.x._value,
-          y: this.state.pan.y._value,
+      onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
+        if (this.outBounds(nativeEvent)) return
+        this.updateColor({nativeEvent})
+        this.setState({panHandlerReady: true})
+
+        this.state.pan.setValue({
+          x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
+          y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
         })
-        this.state.pan.setValue({x: 0, y: 0})
         return true
       },
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: () => true,
-      onPanResponderMove: Animated.event([null, {
-        dx: this.state.pan.x,
-        dy: this.state.pan.y,
-      }], { listener: this.updateColor }),
-      onPanResponderRelease: () => {
+      onPanResponderMove: (event, gestureState) => {
+        if (this.outBounds(gestureState)) return
+
+        this.resetPanHandler()
+        return Animated.event(
+          [
+            null,
+            {
+              dx: this.state.pan.x,
+              dy: this.state.pan.y,
+            },
+          ],
+          {listener: this.updateColor}
+        )(event, gestureState)
+      },
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderRelease: ({nativeEvent}) => {
+        this.setState({panHandlerReady: true})
         this.state.pan.flattenOffset()
+        const {radius} = this.calcPolar(nativeEvent)
+        if (radius < 0.1) {
+          this.forceUpdate('#ffffff')
+        }
       },
     })
   }
 
-
   onLayout () {
     this.measureOffset()
-    /*
-    * Multiple measures to avoid the gap between animated
-    * and not animated views
-    */
-    setTimeout(() => this.measureOffset(), 200)
   }
-
 
   measureOffset () {
     /*
@@ -69,21 +84,29 @@ export class ColorWheel extends Component {
     */
     this.self.measureInWindow((x, y, width, height) => {
       const window = Dimensions.get('window')
+      const absX = x % width
       const radius = Math.min(width, height) / 2
       const offset = {
-        x: x % window.width + width / 2,
+        x: absX + width / 2,
         y: y % window.height + height / 2,
       }
 
-
-      this.setState({ offset, radius, height, width })
+      this.setState({
+        offset,
+        radius,
+        height,
+        width,
+        top: y % window.height,
+        left: absX,
+      })
       this.forceUpdate(this.state.currentColor)
     })
   }
 
-
   calcPolar (gestureState) {
-    const {pageX, pageY, moveX, moveY} = gestureState
+    const {
+      pageX, pageY, moveX, moveY,
+    } = gestureState
     const [x, y] = [pageX || moveX, pageY || moveY]
     const [dx, dy] = [x - this.state.offset.x, y - this.state.offset.y]
     return {
@@ -93,6 +116,23 @@ export class ColorWheel extends Component {
     }
   }
 
+  outBounds (gestureState) {
+    const {radius} = this.calcPolar(gestureState)
+    return radius > 1
+  }
+
+  resetPanHandler () {
+    if (!this.state.panHandlerReady) {
+      return
+    }
+
+    this.setState({panHandlerReady: false})
+    this.state.pan.setOffset({
+      x: this.state.pan.x._value,
+      y: this.state.pan.y._value,
+    })
+    this.state.pan.setValue({x: 0, y: 0})
+  }
 
   calcCartesian (deg, radius) {
     const r = radius * this.state.radius // was normalized
@@ -105,46 +145,67 @@ export class ColorWheel extends Component {
     }
   }
 
-
   updateColor = ({nativeEvent}) => {
-    const { deg, radius } = this.calcPolar(nativeEvent)
-    const currentColor = colorsys.hsv2Hex({ h: deg, s: 100 * radius, v: 100 })
-    this.setState({ currentColor })
-    this.props.onColorChange(currentColor)
+    const {deg, radius} = this.calcPolar(nativeEvent)
+    const currentColor = colorsys.hsv2Hex({h: deg, s: 100 * radius, v: 100})
+    this.setState({currentColor})
+    this.props.onColorChange({h: deg, s: 100 * radius, v: 100})
   }
 
+  forceUpdate = color => {
+    const {h, s} = colorsys.hex2Hsv(color)
+    const {left, top} = this.calcCartesian(h, s / 100)
+    this.setState({currentColor: color})
+    this.state.pan.setValue({
+      x: left - this.props.thumbSize / 2,
+      y: top - this.props.thumbSize / 2,
+    })
+  }
 
-  forceUpdate = (color) => {
-    const { h, s } = colorsys.hex2Hsv(color)
-    const { left, top } = this.calcCartesian(h, s / 100)
+  animatedUpdate = color => {
+    const {h, s} = colorsys.hex2Hsv(color)
+    const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
     Animated.spring(this.state.pan, {
-      toValue: {x: left - 25, y: top - 25}
+      toValue: {
+        x: left - this.props.thumbSize / 2,
+        y: top - this.props.thumbSize / 2,
+      },
     }).start()
   }
 
-
   render () {
-    const { radius } = this.state
+    const {radius} = this.state
+    const thumbStyle = [
+      styles.circle,
+      this.props.thumbStyle,
+      {
+        width: this.props.thumbSize,
+        height: this.props.thumbSize,
+        borderRadius: this.props.thumbSize / 2,
+        backgroundColor: this.state.currentColor,
+        opacity: this.state.offset.x === 0 ? 0 : 1,
+      },
+    ]
+
     return (
       <View
-        ref={(node) => { this.self = node }}
+        ref={node => {
+          this.self = node
+        }}
         {...this._panResponder.panHandlers}
-        onLayout={(nativeEvent) => this.onLayout(nativeEvent)}
-        style={[styles.coverResponder, this.props.style]}>
+        onLayout={nativeEvent => this.onLayout(nativeEvent)}
+        style={[styles.coverResponder, this.props.style]}
+      >
         <Image
           style={[styles.img, {height: radius * 2, width: radius * 2}]}
-          source={require('./color-wheel.png')} />
-        <Animated.View
-          {...this._panResponder.panHandlers}
-          style={[this.state.pan.getLayout(), styles.circle, {
-            backgroundColor: this.state.currentColor,
-          }, this.props.thumbStyle]} />
+          source={require('yeti/app/assets/img/color-wheel.png')}
+        />
+        <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} />
       </View>
     )
   }
 }
-
 
 const styles = StyleSheet.create({
   coverResponder: {
@@ -157,9 +218,6 @@ const styles = StyleSheet.create({
   },
   circle: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 30,
     backgroundColor: '#EEEEEE',
     borderWidth: 3,
     borderColor: '#EEEEEE',
