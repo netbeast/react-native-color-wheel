@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View
 } from 'react-native';
-import { ColorWheel } from './ColorWheel';
+import { ColorWheel } from 'react-native-color-wheel';
 
 export default class Example extends Component {
   render() {
