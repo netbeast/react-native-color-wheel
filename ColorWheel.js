@@ -199,7 +199,7 @@ export class ColorWheel extends Component {
       >
         <Image
           style={[styles.img, {height: radius * 2, width: radius * 2}]}
-          source={require('yeti/app/assets/img/color-wheel.png')}
+          source={require('./color-wheel.png')}
         />
         <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} />
       </View>
