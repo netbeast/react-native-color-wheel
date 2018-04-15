@@ -31,7 +31,7 @@ export class ColorWheel extends Component {
   UNSAFE_componentWillMount = () => {
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
-        if (this.outBounds(nativeEvent)) return;
+        if (this.outBounds(nativeEvent)) return
         this.updateColor({nativeEvent})
 
         this.state.pan.setValue({
