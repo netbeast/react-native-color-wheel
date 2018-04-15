@@ -128,9 +128,9 @@ export class ColorWheel extends Component {
 
   updateColor = ({nativeEvent}) => {
     const {deg, radius} = this.calcPolar(nativeEvent)
-    const currentColor = colorsys.hsv2Hex({h: deg, s: 100 * ((radius <= 1) ? radius : 1), v: 100})
+    const currentColor = colorsys.hsv2Hex({h: deg, s: 100 * ((radius < 1) ? radius : 1), v: 100})
     this.setState({currentColor})
-    this.props.onColorChange({h: deg, s: 100 * radius, v: 100})
+    this.props.onColorChange({h: deg, s: 100 * ((radius < 1) ? radius : 1), v: 100})
   }
 
   forceUpdate = color => {
