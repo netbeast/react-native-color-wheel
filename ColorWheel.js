@@ -28,12 +28,11 @@ export class ColorWheel extends Component {
     }
   }
 
-  componentWillMount = () => {
+  UNSAFE_componentWillMount = () => {
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
-        if (this.outBounds(nativeEvent)) return
+        if (this.outBounds(nativeEvent)) return;
         this.updateColor({nativeEvent})
-        this.setState({panHandlerReady: true})
 
         this.state.pan.setValue({
           x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
@@ -45,23 +44,18 @@ export class ColorWheel extends Component {
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: () => true,
       onPanResponderMove: (event, gestureState) => {
-        if (this.outBounds(gestureState)) return
+        const {deg, radius} = this.calcPolar(gestureState);
+        const {left, top} = this.calcCartesian(deg, (radius > 1) ? 1 : radius);
 
-        this.resetPanHandler()
-        return Animated.event(
-          [
-            null,
-            {
-              dx: this.state.pan.x,
-              dy: this.state.pan.y,
-            },
-          ],
-          {listener: this.updateColor}
-        )(event, gestureState)
+        this.state.pan.setValue({
+          x: left - this.props.thumbSize / 2,
+          y: top - this.props.thumbSize / 2,
+        })
+
+        this.updateColor(event, gestureState);
       },
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: ({nativeEvent}) => {
-        this.setState({panHandlerReady: true})
         this.state.pan.flattenOffset()
         const {radius} = this.calcPolar(nativeEvent)
         if (radius < 0.1) {
@@ -121,19 +115,6 @@ export class ColorWheel extends Component {
     return radius > 1
   }
 
-  resetPanHandler () {
-    if (!this.state.panHandlerReady) {
-      return
-    }
-
-    this.setState({panHandlerReady: false})
-    this.state.pan.setOffset({
-      x: this.state.pan.x._value,
-      y: this.state.pan.y._value,
-    })
-    this.state.pan.setValue({x: 0, y: 0})
-  }
-
   calcCartesian (deg, radius) {
     const r = radius * this.state.radius // was normalized
     const rad = Math.PI * deg / 180
@@ -156,11 +137,11 @@ export class ColorWheel extends Component {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
+    this.props.onColorChange({h, s, v})
     this.state.pan.setValue({
       x: left - this.props.thumbSize / 2,
       y: top - this.props.thumbSize / 2,
     })
-    this.props.onColorChange({h, s, v})
   }
 
   animatedUpdate = color => {
