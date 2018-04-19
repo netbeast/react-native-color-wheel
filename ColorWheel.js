@@ -28,7 +28,7 @@ export class ColorWheel extends Component {
     }
   }
 
-  UNSAFE_componentWillMount = () => {
+  componentDidMount () {
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
         if (this.outBounds(nativeEvent)) return
@@ -171,12 +171,14 @@ export class ColorWheel extends Component {
       },
     ]
 
+    const panHandlers = this._panResponder && this._panResponder.panHandlers || {}
+
     return (
       <View
         ref={node => {
           this.self = node
         }}
-        {...this._panResponder.panHandlers}
+        {...panHandlers}
         onLayout={nativeEvent => this.onLayout(nativeEvent)}
         style={[styles.coverResponder, this.props.style]}
       >

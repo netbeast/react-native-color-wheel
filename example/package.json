@@ -8,8 +8,8 @@
 	},
 	"dependencies": {
 		"colorsys": "^1.0.17",
-		"react": "16.0.0-alpha.12",
-		"react-native": "0.48.4"
+		"react": "^16.3.2",
+		"react-native": "0.55"
 	},
 	"devDependencies": {
 		"babel-jest": "21.2.0",
