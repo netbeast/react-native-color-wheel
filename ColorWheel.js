@@ -153,9 +153,10 @@ export class ColorWheel extends Component {
   }
 
   forceUpdate = color => {
-    const {h, s} = colorsys.hex2Hsv(color)
+    const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
+    this.props.onColorChange({h, s, v})
     this.state.pan.setValue({
       x: left - this.props.thumbSize / 2,
       y: top - this.props.thumbSize / 2,
@@ -163,9 +164,10 @@ export class ColorWheel extends Component {
   }
 
   animatedUpdate = color => {
-    const {h, s} = colorsys.hex2Hsv(color)
+    const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
+    this.props.onColorChange({h, s, v})
     Animated.spring(this.state.pan, {
       toValue: {
         x: left - this.props.thumbSize / 2,
