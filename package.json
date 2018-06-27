@@ -1,6 +1,6 @@
 {
   "name": "react-native-color-wheel",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A react native reusable and color picker wheel",
   "main": "./ColorWheel.js",
   "license": "MIT",
