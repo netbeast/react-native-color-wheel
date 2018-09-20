@@ -214,6 +214,8 @@ export class ColorWheel extends Component {
   }
 }
 
+export default ColorWheel
+
 const styles = StyleSheet.create({
   coverResponder: {
     flex: 1,
