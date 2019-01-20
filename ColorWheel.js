@@ -67,6 +67,10 @@ export class ColorWheel extends Component {
         if (radius < 0.1) {
           this.forceUpdate('#ffffff')
         }
+
+        if (this.props.onColorChangeComplete) {
+          this.props.onColorChangeComplete(this.state.hsv);
+        }
       },
     })
   }
@@ -147,9 +151,10 @@ export class ColorWheel extends Component {
 
   updateColor = ({nativeEvent}) => {
     const {deg, radius} = this.calcPolar(nativeEvent)
-    const currentColor = colorsys.hsv2Hex({h: deg, s: 100 * radius, v: 100})
-    this.setState({currentColor})
-    this.props.onColorChange({h: deg, s: 100 * radius, v: 100})
+    const hsv = {h: deg, s: 100 * radius, v: 100};
+    const currentColor = colorsys.hsv2Hex(hsv)
+    this.setState({hsv, currentColor})
+    this.props.onColorChange(hsv);
   }
 
   forceUpdate = color => {
