@@ -16,7 +16,6 @@ export class ColorWheel extends Component {
     thumbSize: 50,
     initialColor: '#ffffff',
     onColorChange: () => {},
-    precision: 0,
   }
 
   constructor (props) {
