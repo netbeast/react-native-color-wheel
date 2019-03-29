@@ -24,6 +24,7 @@ export class ColorWheel extends Component {
       offset: {x: 0, y: 0},
       currentColor: props.initialColor,
       pan: new Animated.ValueXY(),
+      radius: 0,
     }
   }
 
