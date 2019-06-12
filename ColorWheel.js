@@ -26,6 +26,7 @@ export class ColorWheel extends Component {
       pan: new Animated.ValueXY(),
       radius: 0,
       panHandlerReady: true,
+      didUpdateThumb: false,
     }
   }
 
@@ -38,14 +39,14 @@ export class ColorWheel extends Component {
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: ({nativeEvent}) => {
         if (this.outBounds(nativeEvent)) return
-        if (this.state.panHandlerReady) {
+        if (!this.state.didUpdateThumb) {
           this.updateColorAndThumbPosition(nativeEvent);
         }
       },
       onPanResponderMove: (event, gestureState) => {
         if (this.outBounds(gestureState)) return
 
-        if (this.state.panHandlerReady) {
+        if (!this.state.didUpdateThumb) {
           const {nativeEvent} = event;
           this.updateColorAndThumbPosition(nativeEvent);
         }
@@ -64,7 +65,10 @@ export class ColorWheel extends Component {
       },
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: ({nativeEvent}) => {
-        this.setState({panHandlerReady: true})
+        this.setState({
+          panHandlerReady: true,
+          didUpdateThumb: false,
+        })
         this.state.pan.flattenOffset()
         const {radius} = this.calcPolar(nativeEvent)
         if (radius < 0.1) {
@@ -84,6 +88,9 @@ export class ColorWheel extends Component {
     this.state.pan.setValue({
       x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
       y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
+    })
+    this.setState({
+      didUpdateThumb: true,
     })
   }
 
