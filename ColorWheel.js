@@ -25,27 +25,30 @@ export class ColorWheel extends Component {
       currentColor: props.initialColor,
       pan: new Animated.ValueXY(),
       radius: 0,
+      panHandlerReady: true,
     }
   }
 
   componentDidMount = () => {
     this._panResponder = PanResponder.create({
-      onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
-        if (this.outBounds(nativeEvent)) return
-        this.updateColor({nativeEvent})
-        this.setState({panHandlerReady: true})
-
-        this.state.pan.setValue({
-          x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
-          y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
-        })
+      onStartShouldSetPanResponderCapture: () => {
         return true
       },
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderGrant: () => true,
+      onPanResponderGrant: ({nativeEvent}) => {
+        if (this.outBounds(nativeEvent)) return
+        if (this.state.panHandlerReady) {
+          this.updateColorAndThumbPosition(nativeEvent);
+        }
+      },
       onPanResponderMove: (event, gestureState) => {
         if (this.outBounds(gestureState)) return
+
+        if (this.state.panHandlerReady) {
+          const {nativeEvent} = event;
+          this.updateColorAndThumbPosition(nativeEvent);
+        }
 
         this.resetPanHandler()
         return Animated.event(
@@ -72,6 +75,15 @@ export class ColorWheel extends Component {
           this.props.onColorChangeComplete(this.state.hsv);
         }
       },
+    })
+  }
+
+  updateColorAndThumbPosition (nativeEvent) {
+    this.updateColor({nativeEvent})
+
+    this.state.pan.setValue({
+      x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
+      y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
     })
   }
 
