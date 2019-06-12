@@ -202,16 +202,17 @@ export class ColorWheel extends Component {
         ref={node => {
           this.self = node
         }}
-        {...panHandlers}
         onLayout={nativeEvent => this.onLayout(nativeEvent)}
         style={[styles.coverResponder, this.props.style]}>
         <Image
-          style={[styles.img, 
+          style={[styles.img,
                   {
                     height: radius * 2 - this.props.thumbSize,
-                    width: radius * 2 - this.props.thumbSize
+                    width: radius * 2 - this.props.thumbSize,
+                    borderRadius: radius - this.props.thumbSize,
                   }]}
           source={require('./color-wheel.png')}
+          {...panHandlers}
         />
         <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} />
       </View>
