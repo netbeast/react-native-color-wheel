@@ -18,12 +18,29 @@ export class ColorWheel extends Component {
     onColorChange: () => {},
   }
 
+  static getDerivedStateFromProps(props: Object, state: Object): null | Object {
+		const {
+      toggleMeToforceUpdateInitialColor,
+    } = props;
+		if (toggleMeToforceUpdateInitialColor !== state.toggleMeToforceUpdateInitialColor) {
+			return {
+        toggleMeToforceUpdateInitialColor,
+			};
+		}
+		return null;
+	}
+
   constructor (props) {
     super(props)
+    const {
+      initialColor,
+      toggleMeToforceUpdateInitialColor = 0,
+    } = props;
     this.state = {
       offset: {x: 0, y: 0},
-      currentColor: props.initialColor,
+      currentColor: initialColor,
       pan: new Animated.ValueXY(),
+      toggleMeToforceUpdateInitialColor,
       radius: 0,
       panHandlerReady: true,
       didUpdateThumb: false,
@@ -80,6 +97,16 @@ export class ColorWheel extends Component {
         }
       },
     })
+  }
+
+  componentDidUpdate(prevProps: Object, prevState: Object) {
+    const {
+      initialColor,
+    } = this.props;
+
+    if (initialColor && this.state.toggleMeToforceUpdateInitialColor !== prevState.toggleMeToforceUpdateInitialColor) {
+      this.forceUpdate(initialColor);
+    }
   }
 
   updateColorAndThumbPosition (nativeEvent) {
