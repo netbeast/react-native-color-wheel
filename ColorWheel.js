@@ -121,7 +121,7 @@ export class ColorWheel extends Component {
     })
   }
 
-  onLayout () {
+  onLayout = () => {
     this.measureOffset()
   }
 
@@ -227,6 +227,10 @@ export class ColorWheel extends Component {
     }).start()
   }
 
+  setRef = (ref) => {
+    this.self = ref;
+  }
+
   render () {
     const {radius} = this.state
     const thumbStyle = [
@@ -245,10 +249,8 @@ export class ColorWheel extends Component {
 
     return (
       <View
-        ref={node => {
-          this.self = node
-        }}
-        onLayout={nativeEvent => this.onLayout(nativeEvent)}
+        ref={this.setRef}
+        onLayout={this.onLayout}
         style={[styles.coverResponder, this.props.style]}
         pointerEvents={'box-none'} >
         <Image
