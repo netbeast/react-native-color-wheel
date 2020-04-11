@@ -41,8 +41,8 @@ export class ColorWheel extends Component {
         })
         return true
       },
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+     
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => true,
       onPanResponderMove: (event, gestureState) => {
         if (this.outBounds(gestureState)) return
