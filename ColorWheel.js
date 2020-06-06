@@ -24,7 +24,7 @@ export class ColorWheel extends Component {
       offset: {x: 0, y: 0},
       currentColor: props.initialColor,
       pan: new Animated.ValueXY(),
-      radius: 0,
+      radius:0
     }
   }
 
@@ -69,7 +69,7 @@ export class ColorWheel extends Component {
         }
 
         if (this.props.onColorChangeComplete) {
-          this.props.onColorChangeComplete(this.state.hsv);
+          this.props.onColorChangeComplete(this.state.currentColor);
         }
       },
     })
@@ -154,14 +154,14 @@ export class ColorWheel extends Component {
     const hsv = {h: deg, s: 100 * radius, v: 100};
     const currentColor = colorsys.hsv2Hex(hsv)
     this.setState({hsv, currentColor})
-    this.props.onColorChange(hsv);
+    this.props.onColorChange(currentColor);
   }
 
   forceUpdate = color => {
-    const {h, s, v} = colorsys.hex2Hsv(color)
+    const {h, s, v} = colorsys.hex2Hsv(color)   
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange(color)
     this.state.pan.setValue({
       x: left - this.props.thumbSize / 2,
       y: top - this.props.thumbSize / 2,
@@ -172,7 +172,7 @@ export class ColorWheel extends Component {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange(color)    
     Animated.spring(this.state.pan, {
       toValue: {
         x: left - this.props.thumbSize / 2,
