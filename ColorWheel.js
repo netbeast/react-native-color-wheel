@@ -221,7 +221,7 @@ export class ColorWheel extends Component {
 
 const styles = StyleSheet.create({
   coverResponder: {
-    flex: 1,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
