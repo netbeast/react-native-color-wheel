@@ -24,6 +24,9 @@ export class ColorWheel extends Component {
       offset: {x: 0, y: 0},
       currentColor: props.initialColor,
       pan: new Animated.ValueXY(),
+      animatedValue: new Animated.Value(0),
+      animatedStyle: null,
+      colorWheelIsVisible: false,
       radius: 0,
     }
   }
@@ -34,6 +37,21 @@ export class ColorWheel extends Component {
         if (this.outBounds(nativeEvent)) return
         this.updateColor({nativeEvent})
         this.setState({panHandlerReady: true})
+        this.setState({colorWheelIsVisible: true});
+        
+          Animated.spring(this.state.animatedValue, {
+            toValue: 1,
+          }).start();
+         
+
+        this.setState({animatedStyle: {transform: [{
+          translateY: this.state.animatedValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, -60]  // 0 : 150, 0.5 : 75, 1 : 0
+          }),
+         
+        }, ]}}),
+      
 
         this.state.pan.setValue({
           x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
@@ -46,6 +64,8 @@ export class ColorWheel extends Component {
       onPanResponderGrant: () => true,
       onPanResponderMove: (event, gestureState) => {
         if (this.outBounds(gestureState)) return
+
+        
 
         this.resetPanHandler()
         return Animated.event(
@@ -62,6 +82,16 @@ export class ColorWheel extends Component {
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: ({nativeEvent}) => {
         this.setState({panHandlerReady: true})
+        Animated.spring(this.state.animatedValue, {
+          toValue: 0,
+        }).start()
+        this.setState({animatedStyle: {transform: [{
+          translateY: this.state.animatedValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, -60]  // 0 : 150, 0.5 : 75, 1 : 0
+          }),
+         
+        }, ]}})
         this.state.pan.flattenOffset()
         const {radius} = this.calcPolar(nativeEvent)
         if (radius < 0.1) {
@@ -213,7 +243,7 @@ export class ColorWheel extends Component {
                   }]}
           source={require('./color-wheel.png')}
         />
-        <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} />
+        {this.state.colorWheelIsVisible && <Animated.View style={[this.state.pan.getLayout(), thumbStyle, this.state.animatedStyle]} />}
       </View>
     )
   }
