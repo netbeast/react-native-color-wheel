@@ -180,6 +180,7 @@ const ColorWheel = ({
 
 					Animated.spring(animatedValue, {
 						toValue: 1,
+						useNativeDriver: false
 					}).start();
 
 					pan.setValue({
@@ -197,12 +198,13 @@ const ColorWheel = ({
 
 					return Animated.event([null, { dx: pan.x, dy: pan.y }], {
 						listener: updateColor,
+						useNativeDriver: false
 					})(event, gestureState);
 				},
 				onMoveShouldSetPanResponder: () => true,
 				onPanResponderRelease: ({ nativeEvent }) => {
 					setPanHandlerReady(true);
-					Animated.spring(animatedValue, { toValue: 0 }).start();
+					Animated.spring(animatedValue, { toValue: 0, useNativeDriver: false }).start();
 					pan.flattenOffset();
 
 					updateColor({ nativeEvent, complete: true });
