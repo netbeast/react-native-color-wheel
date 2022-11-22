@@ -18,34 +18,58 @@ export class ColorWheel extends Component {
     onColorChange: () => {},
   }
 
+  static getDerivedStateFromProps(props: Object, state: Object): null | Object {
+		const {
+      toggleMeToforceUpdateInitialColor,
+    } = props;
+		if (toggleMeToforceUpdateInitialColor !== state.toggleMeToforceUpdateInitialColor) {
+			return {
+        toggleMeToforceUpdateInitialColor,
+			};
+		}
+		return null;
+	}
+
   constructor (props) {
     super(props)
+    const {
+      initialColor,
+      toggleMeToforceUpdateInitialColor = 0,
+    } = props;
     this.state = {
       offset: {x: 0, y: 0},
-      currentColor: props.initialColor,
+      currentColor: initialColor,
       pan: new Animated.ValueXY(),
+      toggleMeToforceUpdateInitialColor,
       radius: 0,
+      panHandlerReady: true,
+      didUpdateThumb: false,
     }
   }
 
   componentDidMount = () => {
     this._panResponder = PanResponder.create({
-      onStartShouldSetPanResponderCapture: ({nativeEvent}) => {
-        if (this.outBounds(nativeEvent)) return
-        this.updateColor({nativeEvent})
-        this.setState({panHandlerReady: true})
-
-        this.state.pan.setValue({
-          x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
-          y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
-        })
+      onStartShouldSetPanResponderCapture: () => {
         return true
       },
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderGrant: () => true,
+      onStartShouldSetPanResponder: () => { return true },
+      onMoveShouldSetPanResponderCapture: () => { return true },
+      onPanResponderGrant: ({nativeEvent}) => {
+        if (this.outBounds(nativeEvent)) return
+        if (this.props.onGrant) {
+          this.props.onGrant();
+        }
+        if (!this.state.didUpdateThumb) {
+          this.updateColorAndThumbPosition(nativeEvent);
+        }
+      },
       onPanResponderMove: (event, gestureState) => {
         if (this.outBounds(gestureState)) return
+
+        if (!this.state.didUpdateThumb) {
+          const {nativeEvent} = event;
+          this.updateColorAndThumbPosition(nativeEvent);
+        }
 
         this.resetPanHandler()
         return Animated.event(
@@ -61,7 +85,10 @@ export class ColorWheel extends Component {
       },
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: ({nativeEvent}) => {
-        this.setState({panHandlerReady: true})
+        this.setState({
+          panHandlerReady: true,
+          didUpdateThumb: false,
+        })
         this.state.pan.flattenOffset()
         const {radius} = this.calcPolar(nativeEvent)
         if (radius < 0.1) {
@@ -75,11 +102,33 @@ export class ColorWheel extends Component {
     })
   }
 
-  onLayout () {
-    this.measureOffset()
+  componentDidUpdate(prevProps: Object, prevState: Object) {
+    const {
+      initialColor,
+    } = this.props;
+
+    if (initialColor && this.state.toggleMeToforceUpdateInitialColor !== prevState.toggleMeToforceUpdateInitialColor) {
+      this.forceUpdate(initialColor);
+    }
   }
 
-  measureOffset () {
+  updateColorAndThumbPosition (nativeEvent) {
+    this.updateColor({nativeEvent})
+
+    this.state.pan.setValue({
+      x: -this.state.left + nativeEvent.pageX - this.props.thumbSize / 2,
+      y: -this.state.top + nativeEvent.pageY - this.props.thumbSize / 2,
+    })
+    this.setState({
+      didUpdateThumb: true,
+    })
+  }
+
+  onLayout = ({nativeEvent: {layout}}) => {
+    this.measureOffset(layout)
+  }
+
+  measureOffset (layout) {
     /*
     * const {x, y, width, height} = nativeEvent.layout
     * onlayout values are different than measureInWindow
@@ -87,19 +136,22 @@ export class ColorWheel extends Component {
     * but in measureInWindow they are relative to the window
     */
     this.self.measureInWindow((x, y, width, height) => {
+      // In iOS measureInWindow sometimes returns height/width zero. Hence use width/height from layout in that case
+      const _w = width || layout.width;
+      const _h = height || layout.height
       const window = Dimensions.get('window')
-      const absX = x % width
-      const radius = Math.min(width, height) / 2
+      const absX = x % _w
+      const radius = Math.min(_w, _h) / 2
       const offset = {
-        x: absX + width / 2,
-        y: y % window.height + height / 2,
+        x: absX + _w / 2,
+        y: y % window.height + _h / 2,
       }
 
       this.setState({
         offset,
         radius,
-        height,
-        width,
+        height: _h,
+        width: _w,
         top: y % window.height,
         left: absX,
       })
@@ -154,14 +206,14 @@ export class ColorWheel extends Component {
     const hsv = {h: deg, s: 100 * radius, v: 100};
     const currentColor = colorsys.hsv2Hex(hsv)
     this.setState({hsv, currentColor})
-    this.props.onColorChange(hsv);
+    this.props.onColorChange(hsv, false);
   }
 
   forceUpdate = color => {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange({h, s, v}, true)
     this.state.pan.setValue({
       x: left - this.props.thumbSize / 2,
       y: top - this.props.thumbSize / 2,
@@ -172,13 +224,17 @@ export class ColorWheel extends Component {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange({h, s, v}, false)
     Animated.spring(this.state.pan, {
       toValue: {
         x: left - this.props.thumbSize / 2,
         y: top - this.props.thumbSize / 2,
       },
     }).start()
+  }
+
+  setRef = (ref) => {
+    this.self = ref;
   }
 
   render () {
@@ -199,21 +255,22 @@ export class ColorWheel extends Component {
 
     return (
       <View
-        ref={node => {
-          this.self = node
-        }}
-        {...panHandlers}
-        onLayout={nativeEvent => this.onLayout(nativeEvent)}
-        style={[styles.coverResponder, this.props.style]}>
+        ref={this.setRef}
+        onLayout={this.onLayout}
+        style={[styles.coverResponder, this.props.style]}
+        pointerEvents={'box-none'} >
         <Image
-          style={[styles.img, 
+          pointerEvents={'auto'}
+          style={[styles.img,
                   {
-                    height: radius * 2 - this.props.thumbSize,
-                    width: radius * 2 - this.props.thumbSize
+                    height: radius * 2,
+                    width: radius * 2,
+                    borderRadius: radius - this.props.thumbSize,
                   }]}
           source={require('./color-wheel.png')}
+          {...panHandlers}
         />
-        <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} />
+        <Animated.View style={[this.state.pan.getLayout(), thumbStyle]} pointerEvents={'box-none'} />
       </View>
     )
   }
