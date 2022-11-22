@@ -52,10 +52,13 @@ export class ColorWheel extends Component {
       onStartShouldSetPanResponderCapture: () => {
         return true
       },
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => { return true },
+      onMoveShouldSetPanResponderCapture: () => { return true },
       onPanResponderGrant: ({nativeEvent}) => {
         if (this.outBounds(nativeEvent)) return
+        if (this.props.onGrant) {
+          this.props.onGrant();
+        }
         if (!this.state.didUpdateThumb) {
           this.updateColorAndThumbPosition(nativeEvent);
         }
@@ -121,11 +124,11 @@ export class ColorWheel extends Component {
     })
   }
 
-  onLayout = () => {
-    this.measureOffset()
+  onLayout = ({nativeEvent: {layout}}) => {
+    this.measureOffset(layout)
   }
 
-  measureOffset () {
+  measureOffset (layout) {
     /*
     * const {x, y, width, height} = nativeEvent.layout
     * onlayout values are different than measureInWindow
@@ -133,19 +136,22 @@ export class ColorWheel extends Component {
     * but in measureInWindow they are relative to the window
     */
     this.self.measureInWindow((x, y, width, height) => {
+      // In iOS measureInWindow sometimes returns height/width zero. Hence use width/height from layout in that case
+      const _w = width || layout.width;
+      const _h = height || layout.height
       const window = Dimensions.get('window')
-      const absX = x % width
-      const radius = Math.min(width, height) / 2
+      const absX = x % _w
+      const radius = Math.min(_w, _h) / 2
       const offset = {
-        x: absX + width / 2,
-        y: y % window.height + height / 2,
+        x: absX + _w / 2,
+        y: y % window.height + _h / 2,
       }
 
       this.setState({
         offset,
         radius,
-        height,
-        width,
+        height: _h,
+        width: _w,
         top: y % window.height,
         left: absX,
       })
@@ -200,14 +206,14 @@ export class ColorWheel extends Component {
     const hsv = {h: deg, s: 100 * radius, v: 100};
     const currentColor = colorsys.hsv2Hex(hsv)
     this.setState({hsv, currentColor})
-    this.props.onColorChange(hsv);
+    this.props.onColorChange(hsv, false);
   }
 
   forceUpdate = color => {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange({h, s, v}, true)
     this.state.pan.setValue({
       x: left - this.props.thumbSize / 2,
       y: top - this.props.thumbSize / 2,
@@ -218,7 +224,7 @@ export class ColorWheel extends Component {
     const {h, s, v} = colorsys.hex2Hsv(color)
     const {left, top} = this.calcCartesian(h, s / 100)
     this.setState({currentColor: color})
-    this.props.onColorChange({h, s, v})
+    this.props.onColorChange({h, s, v}, false)
     Animated.spring(this.state.pan, {
       toValue: {
         x: left - this.props.thumbSize / 2,
@@ -254,6 +260,7 @@ export class ColorWheel extends Component {
         style={[styles.coverResponder, this.props.style]}
         pointerEvents={'box-none'} >
         <Image
+          pointerEvents={'auto'}
           style={[styles.img,
                   {
                     height: radius * 2,
